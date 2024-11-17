@@ -1,0 +1,11 @@
+- name: Ping csc_proxy group
+  hosts: csc_proxy
+  tasks:
+    - name: Ping csc_proxy hosts
+      ping:
+
+- name: Ping csc_vms group
+  hosts: csc_vms
+  tasks:
+    - name: Ping csc_vms hosts
+      ping:
