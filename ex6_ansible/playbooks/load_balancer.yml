@@ -1,0 +1,51 @@
+---
+- name: Configure HTTP load balancer with nginx
+  hosts: csc_proxy
+  become: yes
+  tasks:
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Copy nginx proxy configuration
+      copy:
+        src: ../files/nginx_proxy.conf
+        dest: /etc/nginx/nginx.conf
+
+    - name: Test nginx configuration
+      command: nginx -t
+      ignore_errors: yes
+
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted
+
+- name: Configure webserver with nginx
+  hosts: csc_vms
+  become: yes
+  tasks:
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Copy nginx configuration
+      copy:
+        src: ../files/nginx.conf
+        dest: /etc/nginx/nginx.conf
+
+    - name: Copy index.html
+      template:
+        src: ../templates/index.html.j2
+        dest: /var/www/html/index.html
+
+    - name: Test nginx configuration
+      command: nginx -t
+      ignore_errors: yes
+
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted
