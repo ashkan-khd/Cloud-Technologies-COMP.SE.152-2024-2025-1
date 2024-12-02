@@ -3,6 +3,30 @@
   hosts: csc_vm
   become: true
   tasks:
+    - name: Ensure the persistent volume is formatted as ext4
+      filesystem:
+        fstype: ext4
+        dev: /dev/vdb
+
+    - name: Create the mount point directory
+      file:
+        path: /media/volume/docker
+        state: directory
+        mode: '0755'
+
+    - name: Mount the persistent volume to the directory
+      mount:
+        path: /media/volume/docker
+        src: /dev/vdb
+        fstype: ext4
+        state: mounted
+
+    - name: Persist the mount in fstab
+      lineinfile:
+        path: /etc/fstab
+        line: "/dev/vdb /media/volume/docker ext4 defaults 0 0"
+        state: present
+
     # Task 4: Stop Docker Service
     - name: Stop Docker service
       service:
