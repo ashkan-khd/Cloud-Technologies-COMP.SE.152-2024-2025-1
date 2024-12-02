@@ -1,0 +1,70 @@
+---
+- name: Configure persistent volume and change Docker data-root
+  hosts: csc_vm
+  become: true  # Run tasks with sudo
+  tasks:
+    - name: Ensure the persistent volume is formatted as ext4
+      filesystem:
+        fstype: ext4
+        dev: /dev/vdb
+
+    - name: Create the mount point directory
+      file:
+        path: /media/volume/docker
+        state: directory
+        mode: '0755'
+
+    - name: Mount the persistent volume to the directory
+      mount:
+        path: /media/volume/docker
+        src: /dev/vdb
+        fstype: ext4
+        state: mounted
+
+    - name: Persist the mount in fstab
+      lineinfile:
+        path: /etc/fstab
+        line: "/dev/vdb /media/volume/docker ext4 defaults 0 0"
+        state: present
+
+    - name: Stop Docker service
+      service:
+        name: docker
+        state: stopped
+
+    - name: Backup existing Docker daemon configuration
+      copy:
+        src: /etc/docker/daemon.json
+        dest: /etc/docker/daemon.json.bak
+        remote_src: yes
+      ignore_errors: yes
+
+    - name: Configure Docker to use the new directory
+      blockinfile:
+        path: /etc/docker/daemon.json
+        create: yes
+        block: |
+          {
+              "data-root": "/media/volume/docker"
+          }
+
+    - name: Move existing Docker data to the new location
+      shell: |
+        if [ -d /var/lib/docker ]; then
+          mv /var/lib/docker/* /media/volume/docker/
+        fi
+      args:
+        warn: false
+
+    - name: Restart Docker service
+      service:
+        name: docker
+        state: started
+
+    - name: Verify Docker is using the new storage location
+      shell: docker info | grep "Docker Root Dir"
+      register: docker_root_dir
+
+    - name: Display the new Docker storage directory
+      debug:
+        msg: "Docker is now using the following storage directory: {{ docker_root_dir.stdout }}"
