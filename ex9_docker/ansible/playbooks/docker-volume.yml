@@ -3,33 +3,6 @@
   hosts: csc_vm
   become: true
   tasks:
-
-    # Task 1: Install Docker Engine
-    - name: Install Docker Engine
-      shell: |
-        curl -fsSL https://get.docker.com -o get-docker.sh
-        sh get-docker.sh
-      args:
-        creates: /usr/bin/docker
-
-    # Task 2: Add User to Docker Group
-    - name: Add user to Docker group
-      shell: |
-        groupadd -f docker
-        usermod -aG docker $USER
-      args:
-        warn: false
-
-    # Task 3: Install Docker Compose
-    - name: Install Docker Compose
-      shell: |
-        mkdir -p ~/.docker/cli-plugins/
-        curl -SL https://github.com/docker/compose/releases/download/v2.3.3/docker-compose-linux-x86_64 \
-          -o ~/.docker/cli-plugins/docker-compose
-        chmod +x ~/.docker/cli-plugins/docker-compose
-      args:
-        creates: ~/.docker/cli-plugins/docker-compose
-
     # Task 4: Stop Docker Service
     - name: Stop Docker service
       service:
