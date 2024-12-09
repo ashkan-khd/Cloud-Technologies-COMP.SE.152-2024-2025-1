@@ -1,0 +1,22 @@
+- name: Setup Nginx Load Balancer
+  hosts: balancer
+  become: yes
+  vars:
+    ip_node_1: "192.168.1.102"
+    ip_node_2: "192.168.1.51"
+
+  tasks:
+    - name: Configure Nginx
+      template:
+        src: templates/nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+
+    - name: Copy docker-compose.nginx.yml to the remote VM
+      copy:
+        src: ../config/docker/docker-compose.nginx.yml
+        dest: /home/{{ ansible_user }}/docker-compose.nginx.yml
+
+    - name: Bring up nginx using Docker Compose
+      shell: docker compose -f docker-compose.nginx.yml up -d
+      args:
+        chdir: /home/{{ ansible_user }}
