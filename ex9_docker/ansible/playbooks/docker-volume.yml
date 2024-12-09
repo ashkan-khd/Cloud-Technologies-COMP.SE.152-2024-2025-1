@@ -1,76 +1,37 @@
 ---
+# Based on https://tienbm90.medium.com/how-to-change-docker-root-data-directory-89a39be1a70b/
 - name: Configure Docker with Persistent Volume
   hosts: csc_vm
   become: true
   tasks:
-    - name: Ensure the persistent volume is formatted as ext4
-      filesystem:
-        fstype: ext4
-        dev: /dev/vdb
 
-    - name: Create the mount point directory
-      file:
-        path: /media/volume/docker
-        state: directory
-        mode: '0755'
-
-    - name: Mount the persistent volume to the directory
-      mount:
-        path: /media/volume/docker
-        src: /dev/vdb
-        fstype: ext4
-        state: mounted
-
-    - name: Persist the mount in fstab
-      lineinfile:
-        path: /etc/fstab
-        line: "/dev/vdb /media/volume/docker ext4 defaults 0 0"
-        state: present
-
-    # Task 4: Stop Docker Service
+    # 1. Stop the docker daemon
     - name: Stop Docker service
       service:
         name: docker
         state: stopped
 
-    # Task 5: Backup Existing Docker Daemon Configuration
-    - name: Backup existing Docker daemon configuration
+    # 2. Add a configuration file to tell the docker daemon what is the location of the data directory
+    - name: Copy daemon.json if it does not exist
       copy:
-        src: /etc/docker/daemon.json
-        dest: /etc/docker/daemon.json.bak
-        remote_src: true
-      ignore_errors: true  # Avoid failing the playbook if the file doesn't exist
+        src: ../config/docker/daemon.json
+        dest: /etc/docker/daemon.json
+        force: no
+      ignore_errors: no
 
-    # Task 6: Create New Docker Directory on Persistent Volume
-    - name: Create new Docker directory on persistent volume
-      file:
-        path: /media/volume/docker
-        state: directory
-        owner: root
-        group: root
-        mode: '0755'
-
-    # Task 7: Move Existing Docker Data to Persistent Volume
-    - name: Move existing Docker data to the new location
+    # 3. Copy the current data directory to the new one
+    - name: Synchronize and copy Docker data to new root
       shell: |
-        if [ -d /var/lib/docker ]; then
-          mv /var/lib/docker/* /media/volume/docker/
-        fi
-      args:
-        creates: /media/volume/docker/
+        rsync -aP /var/lib/docker "/media/volume/docker"
+        cp -rp /var/lib/docker/* "/media/volume/docker"
+      ignore_errors: no
 
-    # Task 8: Update Docker Daemon Configuration
-    - name: Update Docker daemon configuration
-      blockinfile:
-        path: /etc/docker/daemon.json
-        create: yes
-        block: |
-          {
-            "data-root": "/media/volume/docker"
-          }
+    # 4. Rename the old docker directory
+    - name: Move old Docker data directory
+      command: mv /var/lib/docker /var/lib/docker.old
 
-    # Task 9: Restart Docker Service
-    - name: Restart Docker service
+    # 5. Restart the docker daemon
+    - name: Start Docker service
       service:
         name: docker
         state: started

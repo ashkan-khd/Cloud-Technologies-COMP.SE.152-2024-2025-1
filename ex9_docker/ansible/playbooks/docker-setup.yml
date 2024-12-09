@@ -1,30 +1,23 @@
 ---
 - name: Setup Docker Engine and Docker Compose
   hosts: csc_vm
-  become: true  # Run tasks with sudo
   tasks:
-    - name: Install prerequisites
-      apt:
-        name:
-          - apt-transport-https
-          - ca-certificates
-          - curl
-          - software-properties-common
-        state: present
-        update_cache: yes
 
     - name: Download Docker installation script
       get_url:
         url: https://get.docker.com
         dest: /tmp/get-docker.sh
         mode: '0755'
+      become: true
 
     - name: Run Docker installation script
-      shell: sudo sh /tmp/get-docker.sh
+      shell: sh /tmp/get-docker.sh
+      become: true
 
     - name: Create the docker group
-      shell: |
-        sudo groupadd docker || true
+      shell: groupadd docker
+      become: true
+      ignore_errors: yes
 
     - name: Add the current user to the docker group
       shell: sudo usermod -aG docker $USER
@@ -32,23 +25,3 @@
     - name: Notify user to log out and back in
       debug:
         msg: "Docker group changes applied. You must log out and log back in (or restart the VM) for the changes to take effect."
-
-    - name: Create directory for Docker Compose plugins
-      file:
-        path: ~/.docker/cli-plugins/
-        state: directory
-        mode: '0755'
-
-    - name: Install Docker Compose
-      get_url:
-        url: https://github.com/docker/compose/releases/download/v2.3.3/docker-compose-linux-x86_64
-        dest: ~/.docker/cli-plugins/docker-compose
-        mode: '0755'
-
-    - name: Verify Docker Compose installation
-      shell: docker compose version
-      register: docker_compose_version
-
-    - name: Display Docker Compose version
-      debug:
-        msg: "Docker Compose installed successfully: {{ docker_compose_version.stdout }}"

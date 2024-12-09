@@ -1,0 +1,13 @@
+---
+- name: Setup and run Portainer
+  hosts: csc_vm
+  tasks:
+    - name: Copy docker-compose.portainer.yml to the remote VM
+      copy:
+        src: ../config/docker/docker-compose.portainer.yml
+        dest: /home/{{ ansible_user }}/docker-compose.portainer.yml
+
+    - name: Run Portainer using Docker Compose
+      shell: docker compose -f docker-compose.portainer.yml up -d
+      args:
+        chdir: /home/{{ ansible_user }}
