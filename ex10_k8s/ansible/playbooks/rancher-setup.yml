@@ -1,0 +1,13 @@
+---
+- name: Setup Rancher on Rancher Server
+  hosts: rancher_group
+  tasks:
+    - name: Copy docker-compose.portainer.yml to the remote VM
+      copy:
+        src: ../config/docker/docker-compose.rancher.yml
+        dest: /home/{{ ansible_user }}/docker-compose.rancher.yml
+
+    - name: Bring up Rancher using Docker Compose
+      shell: docker compose -f docker-compose.rancher.yml up -d
+      args:
+        chdir: /home/{{ ansible_user }}

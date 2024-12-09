@@ -1,0 +1,27 @@
+---
+- name: Setup Docker Engine and Docker Compose
+  hosts: project
+  tasks:
+
+    - name: Download Docker installation script
+      get_url:
+        url: https://get.docker.com
+        dest: /tmp/get-docker.sh
+        mode: '0755'
+      become: true
+
+    - name: Run Docker installation script
+      shell: sh /tmp/get-docker.sh
+      become: true
+
+    - name: Create the docker group
+      shell: groupadd docker
+      become: true
+      ignore_errors: yes
+
+    - name: Add the current user to the docker group
+      shell: sudo usermod -aG docker $USER
+
+    - name: Notify user to log out and back in
+      debug:
+        msg: "Docker group changes applied. You must log out and log back in (or restart the VM) for the changes to take effect."
