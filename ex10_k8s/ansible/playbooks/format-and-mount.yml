@@ -1,0 +1,32 @@
+---
+- name: Format and mount the persistent volume for NFS
+  hosts: balancer_group
+  become: true
+  tasks:
+    # Ensure the persistent volume is formatted as ext4
+    - name: Ensure the persistent volume is formatted as ext4
+      filesystem:
+        fstype: ext4
+        dev: /dev/vdb
+
+    # Create the mount point directory
+    - name: Create the mount point directory
+      file:
+        path: /mnt/data
+        state: directory
+        mode: '0755'
+
+    # Mount the persistent volume to the directory
+    - name: Mount the persistent volume to the directory
+      mount:
+        path: /mnt/data
+        src: /dev/vdb
+        fstype: ext4
+        state: mounted
+
+    # Persist the mount in fstab
+    - name: Persist the mount in fstab
+      lineinfile:
+        path: /etc/fstab
+        line: "/dev/vdb /mnt/data ext4 defaults 0 0"
+        state: present

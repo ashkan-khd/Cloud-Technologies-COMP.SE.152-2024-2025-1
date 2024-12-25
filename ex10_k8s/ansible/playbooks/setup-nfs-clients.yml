@@ -1,0 +1,33 @@
+---
+- name: Install and configure NFS client on Kubernetes nodes
+  hosts: kubernetes
+  become: true
+  tasks:
+    - name: Update the system packages
+      apt:
+        update_cache: yes
+
+    - name: Install the nfs-common package
+      apt:
+        name: nfs-common
+        state: present
+
+    - name: Create NFS client mount point
+      file:
+        path: /mnt/nfs_clientshare
+        state: directory
+        mode: '0755'
+
+    - name: Mount the NFS share
+      mount:
+        path: /mnt/nfs_clientshare
+        src: "{{ nfs_server_ip }}:/mnt/data"
+        fstype: nfs
+        opts: rw,sync
+        state: mounted
+
+    - name: Persist the NFS mount in fstab
+      lineinfile:
+        path: /etc/fstab
+        line: "{{ nfs_server_ip }}:/mnt/data /mnt/nfs_clientshare nfs defaults 0 0"
+        state: present
