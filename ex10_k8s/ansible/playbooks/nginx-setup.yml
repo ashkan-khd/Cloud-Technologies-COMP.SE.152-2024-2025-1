@@ -1,0 +1,21 @@
+---
+- name: Setup Nginx Load Balancer
+  hosts: balancer_group
+  become: yes
+
+  tasks:
+    - name: Configure Nginx
+      template:
+        src: ../templates/nginx.conf.j2
+        dest: /etc/nginx.conf
+
+    - name: Copy docker-compose.nginx.yml to the remote VM
+      copy:
+        src: ../config/docker/docker-compose.nginx.yml
+        dest: /home/{{ ansible_user }}/docker-compose.nginx.yml
+        force: yes
+
+    - name: Bring up nginx using Docker Compose
+      shell: docker compose -f docker-compose.nginx.yml up -d
+      args:
+        chdir: /home/{{ ansible_user }}

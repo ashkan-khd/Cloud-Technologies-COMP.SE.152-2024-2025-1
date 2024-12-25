@@ -1,0 +1,41 @@
+---
+- name: Setup NFS Server on Nginx Load Balancer
+  hosts: balancer_group
+  become: yes
+  tasks:
+    # Step 1: Update package list and install NFS Kernel Server
+    - name: Update apt package list
+      apt:
+        update_cache: yes
+
+    - name: Install NFS kernel server
+      apt:
+        name: nfs-kernel-server
+        state: present
+
+    # Step 2: Create the NFS Export Directory
+    - name: Ensure the NFS export directory exists on the persistent volume
+      file:
+        path: /mnt/data/nfs_share
+        state: directory
+        mode: '0777'
+        owner: nobody
+        group: nogroup
+
+    # Step 3: Configure NFS Exports
+    - name: Configure NFS export permissions
+      blockinfile:
+        path: /etc/exports
+        block: |
+          # NFS exports for Kubernetes nodes
+          /mnt/data/nfs_share 192.168.1.0/24(rw,sync,no_subtree_check)
+          /mnt/data/nfs_share 192.168.2.0/24(rw,sync,no_subtree_check)
+
+    # Step 4: Export the NFS Share and Restart the Service
+    - name: Export NFS shares
+      command: exportfs -a
+
+    - name: Restart NFS server
+      service:
+        name: nfs-kernel-server
+        state: restarted
